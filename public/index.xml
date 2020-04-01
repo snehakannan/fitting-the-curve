@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Fitting the Curve</title>
+    <link>/</link>
+    <description>Recent content on Fitting the Curve</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <copyright>© 2020 Sneha Kannan</copyright>
+    <lastBuildDate>Sun, 29 Mar 2020 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Resume in RMarkdown</title>
+      <link>/post/resume-in-rmarkdown/</link>
+      <pubDate>Tue, 31 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/resume-in-rmarkdown/</guid>
+      <description>One of my professional goals this year is to use blogging as a medium to practice skills related to data science.</description>
+    </item>
+    
+    <item>
+      <title>About</title>
+      <link>/about/</link>
+      <pubDate>Sun, 29 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/about/</guid>
+      <description>Hello there! My name is Sneha Kannan. I am a highly motivated, result oriented data scientist with almost 5 years of experience applying statistical learning to solving challenging business problems.</description>
+    </item>
+    
+  </channel>
+</rss>
