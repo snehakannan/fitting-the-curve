@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>window functions on Fitting the Curve</title>
+    <link>/tags/window-functions/</link>
+    <description>Recent content in window functions on Fitting the Curve</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <copyright>© 2020 Sneha Kannan</copyright>
+    <lastBuildDate>Wed, 01 Apr 2020 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="/tags/window-functions/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Window Functions in SQL</title>
+      <link>/post/window-functions-in-sql/</link>
+      <pubDate>Wed, 01 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/window-functions-in-sql/</guid>
+      <description>SQL is an important tool in data science. The first step in Model Building involves understanding the data, where it’s stored and how to bring it together.</description>
+    </item>
+    
+  </channel>
+</rss>

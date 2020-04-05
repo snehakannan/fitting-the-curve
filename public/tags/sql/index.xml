@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Posts on Fitting the Curve</title>
-    <link>/post/</link>
-    <description>Recent content in Posts on Fitting the Curve</description>
+    <title>SQL on Fitting the Curve</title>
+    <link>/tags/sql/</link>
+    <description>Recent content in SQL on Fitting the Curve</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>© 2020 Sneha Kannan</copyright>
     <lastBuildDate>Fri, 03 Apr 2020 00:00:00 +0000</lastBuildDate>
     
-	<atom:link href="/post/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="/tags/sql/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
@@ -19,15 +19,6 @@
       
       <guid>/post/window-functions-in-postgresql/</guid>
       <description>SQL is an important tool in data science. When starting to analyze the data, it’s necessary to have to pull it together from many tables stored in various schemas.</description>
-    </item>
-    
-    <item>
-      <title>Resume in RMarkdown</title>
-      <link>/post/resume-in-rmarkdown/</link>
-      <pubDate>Tue, 31 Mar 2020 00:00:00 +0000</pubDate>
-      
-      <guid>/post/resume-in-rmarkdown/</guid>
-      <description>One of my professional goals this year is to use blogging as a medium to practice skills related to data science.</description>
     </item>
     
   </channel>

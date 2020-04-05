@@ -1,0 +1,289 @@
+---
+title: Window Functions in PostgreSQL
+author: Sneha Kannan
+date: '2020-04-03'
+slug: window-functions-in-postgresql
+categories:
+  - SQL
+tags:
+  - SQL
+draft: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(RPostgres)
+library(DBI)
+
+connection <- DBI::dbConnect(RPostgres::Postgres(),
+                      host = Sys.getenv('DB_SERVER'),
+                      dbname = Sys.getenv('DB_DATABASE'),
+                      user = Sys.getenv('DB_USER'),
+                      password = Sys.getenv('DB_PASSWORD'),
+                      port = 5432)
+
+```
+
+SQL is an important tool in data science. When starting to analyze the data, it's necessary to have to pull it together from many tables stored in various schemas. Often times, I've had to complete some quick analysis on performance of a particular category compared to the entire population or to rank the different categories for a particular KPI. Window Functions to the rescue!
+
+I'm using the [Media Franchises](https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-07-02) dataset from [Tidy Tuesday](https://github.com/rfordatascience/tidytuesday) for practicing some of the window functions in PostgreSQL - *row_number(), rank() and dense_rank()* . I'm a big fan of Tidy Tuesday project as there are a lot of opportunities to brush up old skills and learn new ones while analyzing and visualizing data. The project is aimed at those working to get more familiar with R. [David Robinson](http://varianceexplained.org/) uploads Tidy Tuesday screencast video recordings where he analyzes the dataset using R. I've used his [video](https://www.youtube.com/watch?v=1xsbTs9-a50) as an inspiration to build my SQL queries. 
+
+Description about the dataset can be seen [here](https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-07-02). I've uploaded the data into a table in my local database so I can write queries in PostgreSQL.
+
+#### **Total revenue of each franchise and the most profitable revenue category for each franchise**
+
+![row_number function groups by franchise, original_media, creators and owners, orders by highest revenue first and assigns a row number to each row ](/images/media-franchises_rownum.png)
+
+
+The result of the query is shown below. For the franchise **A Song of Ice and Fire / Game of Thrones**, the most profitable revenue category is **TV** (with 4 billion USD) as shown by the column **row_num**. 
+Similarly for the franchise **Aladdin**, **Video Games/Games** is the most revenue generating category (2.2 billion USD). 
+
+
+```{r echo=FALSE, warning=FALSE}
+franchises <- dbGetQuery(connection,
+                          "select franchise
+	, original_media
+	, creators
+	, owners
+	, revenue_category
+	, revenue as revenue_billion_usd
+	, row_number() over (partition by franchise
+						 , original_media
+						 , creators
+						 , owners
+						  order by revenue desc) as row_num
+from tidytuesday.media_franchises
+	order by 1, 2, 3, 4")
+
+library(knitr)
+library(kableExtra)
+
+franchises %>% 
+  head(n=10) %>% 
+  kable() %>% 
+  kable_styling(full_width = FALSE, bootstrap_options = "condensed") %>% 
+  row_spec(c(1, 6), bold = T, color = "green")
+```
+
+The query here finds out the number of revenue categories & total revenue for each franchise and the most profitable revenue category.
+
+![](/images/media-franchises_part1.png)
+
+The top 10 Franchises in terms of revenue is shown below. **Pokemon** had a total revenue of almost **91 Billion USD**. **Merchandise, Licensing & Retail** bring the most revenue to Pokemon. Out of the top 10 Franchises, Merchandise, Licensing & Retail is the most profitable for 7 of them. 
+
+```{r, connection=connection, echo=FALSE}
+
+part1 <- dbGetQuery(connection, "
+with franchise_table as (
+	select franchise
+	, original_media
+	, creators
+	, owners
+	, revenue_category
+	, revenue
+	, row_number() over (partition by franchise
+						 , original_media
+						 , creators
+						 , owners
+						  order by revenue desc) as row_num
+from tidytuesday.media_franchises
+	order by 1, 2, 3, 4
+)
+, profitable_revenue_category as (
+	select ft.franchise
+	, ft.original_media
+	, ft.creators
+	, ft.owners
+	, ft.revenue_category
+from franchise_table ft
+where ft.row_num = 1
+)
+, revenue_table as (
+select ft.franchise
+	, ft.original_media
+	, ft.creators
+	, ft.owners
+	, count(*) as num_revenue_categories
+	, sum(ft.revenue) as total_revenue_billion_usd
+from franchise_table ft
+group by 1, 2, 3, 4
+)
+select rt.*
+	, prc.revenue_category as most_profitable_revenue_category
+from revenue_table rt
+inner join profitable_revenue_category prc 
+	on prc.franchise = rt.franchise
+	and prc.original_media = rt.original_media
+	and prc.creators = rt.creators
+	and prc.owners = rt.owners
+order by total_revenue_billion_usd desc
+"
+)
+
+part1 %>% 
+  head(n=10) %>% 
+  kable(linespec="") %>% 
+  kable_styling(full_width = FALSE, bootstrap_options = "condensed") 
+
+```
+
+#### **For companies (owners) that have at least 3 franchises, what's the most profitable franchise?**
+
+![](/images/media-franchises_part2.png)
+
+There are 4 companies that have at least 3 franchises. **Winnie the Pooh** which was originally a book has generated about **74.5 billion USD** for **The Walt Disney Company**. The table below is the result of the query. 
+
+```{r, connection=connection, echo=FALSE}
+
+part2 <- dbGetQuery(connection, "
+with temp_table as (
+select owners
+	, franchise
+	, original_media
+	, sum(revenue) as total_revenue
+from tidytuesday.media_franchises
+-- List of owners who have at least 3 franchises
+where owners in (
+select owners
+from tidytuesday.media_franchises
+group by 1
+having count(distinct franchise) > 2
+	)
+group by 1, 2, 3
+order by 1, 2, 3
+)
+, ranked_franchises as (
+select owners
+	, franchise
+	, original_media
+	, total_revenue
+	, rank () over (partition by owners order by total_revenue desc)
+from temp_table
+)
+select owners
+	, franchise
+	, original_media
+	, total_revenue as total_revenue_billion_usd
+from ranked_franchises
+where rank = 1
+order by total_revenue desc;
+"
+)
+
+part2 %>% 
+  kable() %>% 
+  kable_styling(full_width = FALSE, bootstrap_options = "condensed") 
+
+```
+
+#### **Original Media and Revenue Categories**
+
+![](/images/original-media.png)
+
+There are 18 different types of Original Media in the dataset. They are as follows:
+
+```{r echo=FALSE}
+
+media_categories <- dbGetQuery(connection, "
+select distinct original_media
+from tidytuesday.media_franchises;
+"
+)
+
+t1 <- matrix(media_categories$original_media, ncol=2, byrow=TRUE)
+
+t1 %>% 
+  kable() %>% 
+  kable_styling(full_width = FALSE)
+
+```
+
+To find out those media which have 'Merchandise, Licensing & Retail' as their highest source of revenue, I wrote the following query.
+
+![](/images/media-franchises_part3.png)
+
+There are 13 media groups which have **'Merchandise, Licensing & Retail'** as the highest revenue category and they are here. Looking at this table, there is **a lot** of money involved in Merchandise, Licensing and Retail.
+
+```{r, connection=connection, echo=FALSE}
+
+part3 <- dbGetQuery(connection, "
+with temp_table as (
+	select original_media
+	, revenue_category
+	, sum(revenue) as total_revenue_billion_usd
+from tidytuesday.media_franchises
+group by 1, 2
+order by 1 asc, 3 desc
+)
+, ranked_table as (
+	select original_media
+	, revenue_category
+	, total_revenue_billion_usd
+	, dense_rank() over (partition by original_media 
+					   order by total_revenue_billion_usd desc)
+from temp_table
+)
+select original_media
+	, total_revenue_billion_usd
+from ranked_table
+where dense_rank = 1
+and revenue_category = 'Merchandise, Licensing & Retail'
+order by 2 desc;
+"
+)
+
+part3 %>% 
+  kable() %>% 
+  kable_styling(full_width = FALSE, bootstrap_options = "condensed") 
+
+```
+
+#### **Summary**
+
+I've used three functions *row_number(), rank() and dense_rank()* in this blog post. For this particular analysis there is no difference if one function is used in place of another. So *what* is the difference between the three functions?
+
+**row_number()**: Each row is assigned a unique integer starting from 1 even if the rows have the same value.
+
+**rank()**: There will be gaps assigned in the ranking of rows.
+
+**dense_rank()**: There will not be any gaps assigned in the ranking of rows.
+
+For example, consider the following hypothetical table. There are two rows with the same revenue. 
+
+```{r echo = FALSE}
+temp_df <- data.frame(c('Animated Series', 'Animated Film',
+                        'Television Series', 'Video Game',
+                        'Cartoon'),
+                      c(120, 100, 100, 90, 80),
+                      c(1, 2, 3, 4, 5),
+                      c(1, 2, 2, 4, 5),
+                      c(1, 2, 2, 3, 4))
+
+names(temp_df) <- c('media', 'revenue_billion_usd', 'row_number', 'rank', 'dense_rank')
+
+temp_df %>% 
+  kable() %>% 
+  kable_styling(full_width = FALSE)
+```
+
+**row_number** will assign each row a unique number without considering the same value in two rows.
+
+**rank** will assign the same rank to the two rows and will skip one number after this rank. The next row has 4 (since rank 3 is skipped).
+
+**dense_rank** will assign the same rank to the two rows and will not skip one number after the rank of the two rows. The next row is assigned rank 3 and the final row has the rank 4.
+
+#### **Notes**
+
+Though I've executed the SQL code in my PostgreSQL client, I have created the results of those queries with the help of R dataframes and kable in this blogpost. I did not have to keep taking screenshot of the results of the queries and hence I did it this way. All the queries are in my [git repo](https://github.com/snehakannan/tidytuesday/tree/master/2020-04-03_media-franchises)
+
+In this analysis, I've selected only the highest ranked rows. Often times, there might be a situation when the top 2 or the top 3 ranked groups must be selected. This can be achieved by changing the filtering (the where clause) in the query. 
+
+Useful websites
+
+* https://www.windowfunctions.com/
+* https://www.postgresql.org/docs/9.3/functions-window.html
+  
+
+
+

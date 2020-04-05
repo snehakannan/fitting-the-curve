@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>Window Functions in PostgreSQL - Fitting the Curve</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta property="og:title" content="Window Functions in PostgreSQL" />
+<meta property="og:description" content="SQL is an important tool in data science. When starting to analyze the data, it’s necessary to have to pull it together from many tables stored in various schemas." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/post/window-functions-in-postgresql/" />
+<meta property="article:published_time" content="2020-04-03T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-04-03T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Window Functions in PostgreSQL"/>
+<meta name="twitter:description" content="SQL is an important tool in data science. When starting to analyze the data, it’s necessary to have to pull it together from many tables stored in various schemas."/>
+<link href="https://fonts.googleapis.com/css?family=Ubuntu:300,400,300italic,400italic|Raleway:200,300" rel="stylesheet">
+
+	<link rel="stylesheet" type="text/css" media="screen" href="/css/normalize.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" /><link rel="stylesheet" type="text/css" href="/css/dark.css" media="(prefers-color-scheme: dark)" />
+
+	<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+	<script src="/js/main.js"></script>
+</head>
+
+<body>
+	<div class="container wrapper post">
+		<div class="header">
+	<h1 class="site-title"><a href="/">Fitting the Curve</a></h1>
+	<div class="site-description"><h2>Sneha Kannan</h2><nav class="nav social">
+			<ul class="flat"><a href="https://github.com/snehakannan" title="Github"><i data-feather="github"></i></a><a href="https://twitter.com/snehakannan3" title="Twitter"><i data-feather="twitter"></i></a><a href="https://www.linkedin.com/in/sneha-kannan" title="LinkedIn"><i data-feather="linkedin"></i></a></ul>
+		</nav>
+	</div>
+
+	<nav class="nav">
+		<ul class="flat">
+			
+			<li>
+				<a href="/">Home</a>
+			</li>
+			
+			<li>
+				<a href="/about">About</a>
+			</li>
+			
+			<li>
+				<a href="/post">Posts</a>
+			</li>
+			
+			<li>
+				<a href="/tags">Tags</a>
+			</li>
+			
+		</ul>
+	</nav>
+</div>
+
+
+		<div class="post-header">
+			<h1 class="title">Window Functions in PostgreSQL</h1>
+			<div class="meta">Posted at &mdash; Apr 3, 2020 <span class="draft-label">DRAFT</span> </div>
+		</div>
+
+		<div class="markdown">
+			
+<script src="/rmarkdown-libs/kePrint/kePrint.js"></script>
+
+
+<p>SQL is an important tool in data science. When starting to analyze the data, it’s necessary to have to pull it together from many tables stored in various schemas. Often times, I’ve had to complete some quick analysis on performance of a particular category compared to the entire population or to rank the different categories for a particular KPI. Window Functions to the rescue!</p>
+<p>I’m using the <a href="https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-07-02">Media Franchises</a> dataset from <a href="https://github.com/rfordatascience/tidytuesday">Tidy Tuesday</a> for practicing some of the window functions in PostgreSQL - <em>row_number(), rank() and dense_rank()</em> . I’m a big fan of Tidy Tuesday project as there are a lot of opportunities to brush up old skills and learn new ones while analyzing and visualizing data. The project is aimed at those working to get more familiar with R. <a href="http://varianceexplained.org/">David Robinson</a> uploads Tidy Tuesday screencast video recordings where he analyzes the dataset using R. I’ve used his <a href="https://www.youtube.com/watch?v=1xsbTs9-a50">video</a> as an inspiration to build my SQL queries.</p>
+<p>Description about the dataset can be seen <a href="https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-07-02">here</a>. I’ve uploaded the data into a table in my local database so I can write queries in PostgreSQL.</p>
+<div id="total-revenue-of-each-franchise-and-the-most-profitable-revenue-category-for-each-franchise" class="section level4">
+<h4><strong>Total revenue of each franchise and the most profitable revenue category for each franchise</strong></h4>
+<div class="figure">
+<img src="/images/media-franchises_rownum.png" alt="row_number function groups by franchise, original_media, creators and owners, orders by highest revenue first and assigns a row number to each row" />
+<p class="caption">row_number function groups by franchise, original_media, creators and owners, orders by highest revenue first and assigns a row number to each row</p>
+</div>
+<p>The result of the query is shown below. For the franchise <strong>A Song of Ice and Fire / Game of Thrones</strong>, the most profitable revenue category is <strong>TV</strong> (with 4 billion USD) as shown by the column <strong>row_num</strong>.
+Similarly for the franchise <strong>Aladdin</strong>, <strong>Video Games/Games</strong> is the most revenue generating category (2.2 billion USD).</p>
+<table class="table table-condensed" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+franchise
+</th>
+<th style="text-align:left;">
+original_media
+</th>
+<th style="text-align:left;">
+creators
+</th>
+<th style="text-align:left;">
+owners
+</th>
+<th style="text-align:left;">
+revenue_category
+</th>
+<th style="text-align:right;">
+revenue_billion_usd
+</th>
+<th style="text-align:right;">
+row_num
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;font-weight: bold;color: green !important;">
+A Song of Ice and Fire / Game of Thrones
+</td>
+<td style="text-align:left;font-weight: bold;color: green !important;">
+Novel
+</td>
+<td style="text-align:left;font-weight: bold;color: green !important;">
+George R. R. Martin
+</td>
+<td style="text-align:left;font-weight: bold;color: green !important;">
+Random House WarnerMedia (AT&amp;T)
+</td>
+<td style="text-align:left;font-weight: bold;color: green !important;">
+TV
+</td>
+<td style="text-align:right;font-weight: bold;color: green !important;">
+4.000
+</td>
+<td style="text-align:right;font-weight: bold;color: green !important;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+A Song of Ice and Fire / Game of Thrones
+</td>
+<td style="text-align:left;">
+Novel
+</td>
+<td style="text-align:left;">
+George R. R. Martin
+</td>
+<td style="text-align:left;">
+Random House WarnerMedia (AT&amp;T)
+</td>
+<td style="text-align:left;">
+Book sales
+</td>
+<td style="text-align:right;">
+0.900
+</td>
+<td style="text-align:right;">
+2
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+A Song of Ice and Fire / Game of Thrones
+</td>
+<td style="text-align:left;">
+Novel
+</td>
+<td style="text-align:left;">
+George R. R. Martin
+</td>
+<td style="text-align:left;">
+Random House WarnerMedia (AT&amp;T)
+</td>
+<td style="text-align:left;">
+Home Video/Entertainment
+</td>
+<td style="text-align:right;">
+0.280
+</td>
+<td style="text-align:right;">
+3
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+A Song of Ice and Fire / Game of Thrones
+</td>
+<td style="text-align:left;">
+Novel
+</td>
+<td style="text-align:left;">
+George R. R. Martin
+</td>
+<td style="text-align:left;">
+Random House WarnerMedia (AT&amp;T)
+</td>
+<td style="text-align:left;">
+Video Games/Games
+</td>
+<td style="text-align:right;">
+0.132
+</td>
+<td style="text-align:right;">
+4
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+A Song of Ice and Fire / Game of Thrones
+</td>
+<td style="text-align:left;">
+Novel
+</td>
+<td style="text-align:left;">
+George R. R. Martin
+</td>
+<td style="text-align:left;">
+Random House WarnerMedia (AT&amp;T)
+</td>
+<td style="text-align:left;">
+Box Office
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+5
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;color: green !important;">
+Aladdin
+</td>
+<td style="text-align:left;font-weight: bold;color: green !important;">
+Animated film
+</td>
+<td style="text-align:left;font-weight: bold;color: green !important;">
+Walt Disney Animation Hanna Diyab
+</td>
+<td style="text-align:left;font-weight: bold;color: green !important;">
+The Walt Disney Company (franchise) Sega Sammy Holdings (games/pachinko)
+</td>
+<td style="text-align:left;font-weight: bold;color: green !important;">
+Video Games/Games
+</td>
+<td style="text-align:right;font-weight: bold;color: green !important;">
+2.200
+</td>
+<td style="text-align:right;font-weight: bold;color: green !important;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Aladdin
+</td>
+<td style="text-align:left;">
+Animated film
+</td>
+<td style="text-align:left;">
+Walt Disney Animation Hanna Diyab
+</td>
+<td style="text-align:left;">
+The Walt Disney Company (franchise) Sega Sammy Holdings (games/pachinko)
+</td>
+<td style="text-align:left;">
+Home Video/Entertainment
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+<td style="text-align:right;">
+2
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Aladdin
+</td>
+<td style="text-align:left;">
+Animated film
+</td>
+<td style="text-align:left;">
+Walt Disney Animation Hanna Diyab
+</td>
+<td style="text-align:left;">
+The Walt Disney Company (franchise) Sega Sammy Holdings (games/pachinko)
+</td>
+<td style="text-align:left;">
+Box Office
+</td>
+<td style="text-align:right;">
+0.760
+</td>
+<td style="text-align:right;">
+3
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Aladdin
+</td>
+<td style="text-align:left;">
+Animated film
+</td>
+<td style="text-align:left;">
+Walt Disney Animation Hanna Diyab
+</td>
+<td style="text-align:left;">
+The Walt Disney Company (franchise) Sega Sammy Holdings (games/pachinko)
+</td>
+<td style="text-align:left;">
+Merchandise, Licensing &amp; Retail
+</td>
+<td style="text-align:right;">
+0.500
+</td>
+<td style="text-align:right;">
+4
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Aladdin
+</td>
+<td style="text-align:left;">
+Animated film
+</td>
+<td style="text-align:left;">
+Walt Disney Animation Hanna Diyab
+</td>
+<td style="text-align:left;">
+The Walt Disney Company (franchise) Sega Sammy Holdings (games/pachinko)
+</td>
+<td style="text-align:left;">
+Music
+</td>
+<td style="text-align:right;">
+0.447
+</td>
+<td style="text-align:right;">
+5
+</td>
+</tr>
+</tbody>
+</table>
+<p>The query here finds out the number of revenue categories &amp; total revenue for each franchise and the most profitable revenue category.</p>
+<p><img src="/images/media-franchises_part1.png" /></p>
+<p>The top 10 Franchises in terms of revenue is shown below. <strong>Pokemon</strong> had a total revenue of almost <strong>91 Billion USD</strong>. <strong>Merchandise, Licensing &amp; Retail</strong> bring the most revenue to Pokemon. Out of the top 10 Franchises, Merchandise, Licensing &amp; Retail is the most profitable for 7 of them.</p>
+<table class="table table-condensed" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+franchise
+</th>
+<th style="text-align:left;">
+original_media
+</th>
+<th style="text-align:left;">
+creators
+</th>
+<th style="text-align:left;">
+owners
+</th>
+<th style="text-align:right;">
+num_revenue_categories
+</th>
+<th style="text-align:right;">
+total_revenue_billion_usd
+</th>
+<th style="text-align:left;">
+most_profitable_revenue_category
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Pokémon
+</td>
+<td style="text-align:left;">
+Video game
+</td>
+<td style="text-align:left;">
+Satoshi Tajiri Ken Sugimori
+</td>
+<td style="text-align:left;">
+Nintendo (trademark) The Pokémon Company (Nintendo, Game Freak, Creatures) (copyright)
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+90.863
+</td>
+<td style="text-align:left;">
+Merchandise, Licensing &amp; Retail
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Hello Kitty
+</td>
+<td style="text-align:left;">
+Cartoon character
+</td>
+<td style="text-align:left;">
+Yuko Shimizu Shintaro Tsuji
+</td>
+<td style="text-align:left;">
+Sanrio
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+80.026
+</td>
+<td style="text-align:left;">
+Merchandise, Licensing &amp; Retail
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Winnie the Pooh
+</td>
+<td style="text-align:left;">
+Book
+</td>
+<td style="text-align:left;">
+A. A. Milne E. H. Shepard
+</td>
+<td style="text-align:left;">
+The Walt Disney Company
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+74.519
+</td>
+<td style="text-align:left;">
+Merchandise, Licensing &amp; Retail
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Mickey Mouse &amp; Friends
+</td>
+<td style="text-align:left;">
+Animated cartoon
+</td>
+<td style="text-align:left;">
+Walt Disney Ub Iwerks
+</td>
+<td style="text-align:left;">
+The Walt Disney Company
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+69.737
+</td>
+<td style="text-align:left;">
+Merchandise, Licensing &amp; Retail
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Star Wars
+</td>
+<td style="text-align:left;">
+Film
+</td>
+<td style="text-align:left;">
+George Lucas
+</td>
+<td style="text-align:left;">
+Lucasfilm (The Walt Disney Company)
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+63.004
+</td>
+<td style="text-align:left;">
+Merchandise, Licensing &amp; Retail
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Anpanman
+</td>
+<td style="text-align:left;">
+Manga
+</td>
+<td style="text-align:left;">
+Takashi Yanase
+</td>
+<td style="text-align:left;">
+Froebel-kan
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+60.092
+</td>
+<td style="text-align:left;">
+Merchandise, Licensing &amp; Retail
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Disney Princess
+</td>
+<td style="text-align:left;">
+Animated series
+</td>
+<td style="text-align:left;">
+Andy Mooney
+</td>
+<td style="text-align:left;">
+The Walt Disney Company
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+44.042
+</td>
+<td style="text-align:left;">
+Merchandise, Licensing &amp; Retail
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Mario
+</td>
+<td style="text-align:left;">
+Video game
+</td>
+<td style="text-align:left;">
+Shigeru Miyamoto
+</td>
+<td style="text-align:left;">
+Nintendo
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+35.021
+</td>
+<td style="text-align:left;">
+Video Games/Games
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Shonen Jump / Jump Comics
+</td>
+<td style="text-align:left;">
+Manga
+</td>
+<td style="text-align:left;">
+Shueisha
+</td>
+<td style="text-align:left;">
+Shueisha (Hitotsubashi Group) (manga) Bandai Namco (games)
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+33.217
+</td>
+<td style="text-align:left;">
+Comic or Manga
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Marvel Cinematic Universe
+</td>
+<td style="text-align:left;">
+Film
+</td>
+<td style="text-align:left;">
+Marvel Studios
+</td>
+<td style="text-align:left;">
+Walt Disney Studios (The Walt Disney Company) (franchise) Sony (Spider-Man films)
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+31.000
+</td>
+<td style="text-align:left;">
+Box Office
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="for-companies-owners-that-have-at-least-3-franchises-whats-the-most-profitable-franchise" class="section level4">
+<h4><strong>For companies (owners) that have at least 3 franchises, what’s the most profitable franchise?</strong></h4>
+<p><img src="/images/media-franchises_part2.png" /></p>
+<p>There are 4 companies that have at least 3 franchises. <strong>Winnie the Pooh</strong> which was originally a book has generated about <strong>74.5 billion USD</strong> for <strong>The Walt Disney Company</strong>. The table below is the result of the query.</p>
+<table class="table table-condensed" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+owners
+</th>
+<th style="text-align:left;">
+franchise
+</th>
+<th style="text-align:left;">
+original_media
+</th>
+<th style="text-align:right;">
+total_revenue_billion_usd
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+The Walt Disney Company
+</td>
+<td style="text-align:left;">
+Winnie the Pooh
+</td>
+<td style="text-align:left;">
+Book
+</td>
+<td style="text-align:right;">
+74.519
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+DC Entertainment (AT&amp;T)
+</td>
+<td style="text-align:left;">
+Batman
+</td>
+<td style="text-align:left;">
+Comic book
+</td>
+<td style="text-align:right;">
+25.040
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Shueisha (Hitotsubashi Group)
+</td>
+<td style="text-align:left;">
+KochiKame
+</td>
+<td style="text-align:left;">
+Manga
+</td>
+<td style="text-align:right;">
+15.817
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Warner Bros. (AT&amp;T)
+</td>
+<td style="text-align:left;">
+Looney Tunes
+</td>
+<td style="text-align:left;">
+Animated cartoon
+</td>
+<td style="text-align:right;">
+13.299
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="original-media-and-revenue-categories" class="section level4">
+<h4><strong>Original Media and Revenue Categories</strong></h4>
+<p><img src="/images/original-media.png" /></p>
+<p>There are 18 different types of Original Media in the dataset. They are as follows:</p>
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<tbody>
+<tr>
+<td style="text-align:left;">
+Comic strip
+</td>
+<td style="text-align:left;">
+Book
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Novel
+</td>
+<td style="text-align:left;">
+Visual novel
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Digital pet
+</td>
+<td style="text-align:left;">
+Animated film
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cartoon character
+</td>
+<td style="text-align:left;">
+Film
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Greeting card
+</td>
+<td style="text-align:left;">
+Television series
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Manga
+</td>
+<td style="text-align:left;">
+Video game
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animated series
+</td>
+<td style="text-align:left;">
+Animated cartoon
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Musical theatre
+</td>
+<td style="text-align:left;">
+Comic book
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Anime
+</td>
+<td style="text-align:left;">
+Cartoon
+</td>
+</tr>
+</tbody>
+</table>
+<p>To find out those media which have ‘Merchandise, Licensing &amp; Retail’ as their highest source of revenue, I wrote the following query.</p>
+<p><img src="/images/media-franchises_part3.png" /></p>
+<p>There are 13 media groups which have <strong>‘Merchandise, Licensing &amp; Retail’</strong> as the highest revenue category and they are here. Looking at this table, there is <strong>a lot</strong> of money involved in Merchandise, Licensing and Retail.</p>
+<table class="table table-condensed" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+original_media
+</th>
+<th style="text-align:right;">
+total_revenue_billion_usd
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Animated series
+</td>
+<td style="text-align:right;">
+108.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animated cartoon
+</td>
+<td style="text-align:right;">
+86.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Book
+</td>
+<td style="text-align:right;">
+82.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cartoon character
+</td>
+<td style="text-align:right;">
+80.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animated film
+</td>
+<td style="text-align:right;">
+74.5
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Comic book
+</td>
+<td style="text-align:right;">
+58.9
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Television series
+</td>
+<td style="text-align:right;">
+50.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Film
+</td>
+<td style="text-align:right;">
+46.5
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Anime
+</td>
+<td style="text-align:right;">
+34.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Comic strip
+</td>
+<td style="text-align:right;">
+17.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Greeting card
+</td>
+<td style="text-align:right;">
+9.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Digital pet
+</td>
+<td style="text-align:right;">
+8.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cartoon
+</td>
+<td style="text-align:right;">
+4.0
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="summary" class="section level4">
+<h4><strong>Summary</strong></h4>
+<p>I’ve used three functions <em>row_number(), rank() and dense_rank()</em> in this blog post. For this particular analysis there is no difference if one function is used in place of another. So <em>what</em> is the difference between the three functions?</p>
+<p><strong>row_number()</strong>: Each row is assigned a unique integer starting from 1 even if the rows have the same value.</p>
+<p><strong>rank()</strong>: There will be gaps assigned in the ranking of rows.</p>
+<p><strong>dense_rank()</strong>: There will not be any gaps assigned in the ranking of rows.</p>
+<p>For example, consider the following hypothetical table. There are two rows with the same revenue.</p>
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+media
+</th>
+<th style="text-align:right;">
+revenue_billion_usd
+</th>
+<th style="text-align:right;">
+row_number
+</th>
+<th style="text-align:right;">
+rank
+</th>
+<th style="text-align:right;">
+dense_rank
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Animated Series
+</td>
+<td style="text-align:right;">
+120
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animated Film
+</td>
+<td style="text-align:right;">
+100
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Television Series
+</td>
+<td style="text-align:right;">
+100
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Video Game
+</td>
+<td style="text-align:right;">
+90
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+3
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cartoon
+</td>
+<td style="text-align:right;">
+80
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+4
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>row_number</strong> will assign each row a unique number without considering the same value in two rows.</p>
+<p><strong>rank</strong> will assign the same rank to the two rows and will skip one number after this rank. The next row has 4 (since rank 3 is skipped).</p>
+<p><strong>dense_rank</strong> will assign the same rank to the two rows and will not skip one number after the rank of the two rows. The next row is assigned rank 3 and the final row has the rank 4.</p>
+</div>
+<div id="notes" class="section level4">
+<h4><strong>Notes</strong></h4>
+<p>Though I’ve executed the SQL code in my PostgreSQL client, I have created the results of those queries with the help of R dataframes and kable in this blogpost. I did not have to keep taking screenshot of the results of the queries and hence I did it this way. All the queries are in my <a href="https://github.com/snehakannan/tidytuesday/tree/master/2020-04-03_media-franchises">git repo</a></p>
+<p>In this analysis, I’ve selected only the highest ranked rows. Often times, there might be a situation when the top 2 or the top 3 ranked groups must be selected. This can be achieved by changing the filtering (the where clause) in the query.</p>
+<p>Useful websites</p>
+<ul>
+<li><a href="https://www.windowfunctions.com/" class="uri">https://www.windowfunctions.com/</a></li>
+<li><a href="https://www.postgresql.org/docs/9.3/functions-window.html" class="uri">https://www.postgresql.org/docs/9.3/functions-window.html</a></li>
+</ul>
+</div>
+
+		</div>
+
+		<div class="post-tags">
+			
+				
+					<nav class="nav tags">
+							<ul class="flat">
+								
+								<li><a href="/tags/sql">SQL</a></li>
+								
+							</ul>
+					</nav>
+				
+			
+		</div>
+		<div id="disqus_thread"></div>
+<script type="text/javascript">
+	(function () {
+		
+		
+		if (window.location.hostname == "localhost")
+			return;
+
+		var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+		var disqus_shortname = 'https-fittingthecurve-netlify-com';
+		dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+		(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+	})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by
+		Disqus.</a></noscript>
+<a href="http://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+	<div class="footer wrapper">
+	<nav class="nav">
+		<div> © 2020 Sneha Kannan |  <a href="https://github.com/vividvilla/ezhil">Ezhil theme</a> | Built with <a href="https://gohugo.io">Hugo</a></div>
+	</nav>
+</div>
+
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'G-X5Y4GWK8ES', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+<script>feather.replace()</script>
+</body>
+</html>

@@ -11,8 +11,8 @@ pygmentsstyle = "solarized-dark"
 pygmentscodefences = true
 pygmentscodefencesguesssyntax = true
 
-googleAnalytics = ""
-disqusShortname = ""
+googleAnalytics = "G-X5Y4GWK8ES"
+disqusShortname = "https-fittingthecurve-netlify-com"
 
 summaryLength = 20
 
