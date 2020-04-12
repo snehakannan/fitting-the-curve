@@ -13,6 +13,15 @@
     
     
     <item>
+      <title>Exploratory Data Analysis on Superheroes </title>
+      <link>/post/exploratory-data-analysis-on-superheroes/</link>
+      <pubDate>Sun, 12 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/exploratory-data-analysis-on-superheroes/</guid>
+      <description>In this blog post, I want to practice some EDA and Visualizations in R. I’ve taken a dataset from Kaggle on Superheroes.</description>
+    </item>
+    
+    <item>
       <title>Window Functions in PostgreSQL</title>
       <link>/post/window-functions-in-postgresql/</link>
       <pubDate>Fri, 03 Apr 2020 00:00:00 +0000</pubDate>

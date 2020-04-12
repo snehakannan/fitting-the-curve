@@ -1,0 +1,3193 @@
+---
+title: 'Exploratory Data Analysis on Superheroes '
+author: Sneha Kannan
+date: '2020-04-12'
+slug: exploratory-data-analysis-on-superheroes
+categories:
+  - R
+tags: 
+  - R
+  - ggplot2
+  - Visualization
+  - eda
+draft: no
+---
+
+<script src="/rmarkdown-libs/kePrint/kePrint.js"></script>
+
+
+<p>In this blog post, I want to practice some EDA and Visualizations in R. I’ve taken a dataset from <a href="https://www.kaggle.com/">Kaggle</a> on <a href="https://www.kaggle.com/claudiodavi/superhero-set/data">Superheroes</a>. It consists of two parts, one containing demographic type of information and another with a list of super powers of the superheroes. Diving right into the data.</p>
+<pre class="r"><code>library(tidyverse)
+library(janitor)
+library(scales)
+library(knitr)
+library(kableExtra)
+library(patchwork)
+library(skimr)
+
+theme_set(theme_bw())
+
+# clean_names() funtion will make sure that the column names in the dataset will
+# have underscore , alphabets and numbers. All column names will be converted to
+# lower case by default
+heroes_information_df &lt;- read.csv(&#39;../../datasets/heroes_information.csv&#39;) %&gt;% 
+                          janitor::clean_names()
+super_hero_powers_df &lt;- read.csv(&#39;../../datasets/super_hero_powers.csv&#39;) %&gt;% 
+                          janitor::clean_names()</code></pre>
+<div id="data-cleaning" class="section level4">
+<h4><strong>Data Cleaning</strong></h4>
+<p>There are 19 rows with duplicate value of <em>names</em> of superheroes. This needs to be investigated.</p>
+<pre class="r"><code>heroes_information_df %&gt;% 
+  summarise(num_distinct_superheroes = n_distinct(name),
+            num_superheroes = n())</code></pre>
+<pre><code>##   num_distinct_superheroes num_superheroes
+## 1                      715             734</code></pre>
+<p>tabyl() function is useful to find out the count of factor levels in a column. Here is a look at those superheroes which occur more than once.</p>
+<pre class="r"><code>dup_names &lt;- heroes_information_df %&gt;%
+  janitor::tabyl(name) %&gt;%
+  filter(n&gt;1)
+
+#Contains names of superheroes which are repeated
+dup_names</code></pre>
+<pre><code>##              name n     percent
+## 1           Angel 2 0.002724796
+## 2           Atlas 2 0.002724796
+## 3            Atom 2 0.002724796
+## 4         Batgirl 2 0.002724796
+## 5          Batman 2 0.002724796
+## 6    Black Canary 2 0.002724796
+## 7        Blizzard 2 0.002724796
+## 8     Blue Beetle 2 0.002724796
+## 9  Captain Marvel 2 0.002724796
+## 10      Firestorm 2 0.002724796
+## 11        Goliath 3 0.004087193
+## 12          Namor 2 0.002724796
+## 13           Nova 2 0.002724796
+## 14         Speedy 2 0.002724796
+## 15     Spider-Man 3 0.004087193
+## 16          Toxin 2 0.002724796
+## 17     Vindicator 2 0.002724796</code></pre>
+<pre class="r"><code>#Another way to do the same thing
+
+# dup_names &lt;- heroes_information_df %&gt;% 
+#   group_by(name) %&gt;% 
+#   summarise(n = n()) %&gt;% 
+#   filter(n &gt; 1)</code></pre>
+<p>Here’s the dataframe containing the duplicate superheroes</p>
+<pre class="r"><code>heroes_information_df %&gt;% 
+  filter(name %in% dup_names$name) %&gt;% 
+  kable() %&gt;% 
+  kable_styling(full_width = FALSE)</code></pre>
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;">
+x
+</th>
+<th style="text-align:left;">
+name
+</th>
+<th style="text-align:left;">
+gender
+</th>
+<th style="text-align:left;">
+eye_color
+</th>
+<th style="text-align:left;">
+race
+</th>
+<th style="text-align:left;">
+hair_color
+</th>
+<th style="text-align:right;">
+height
+</th>
+<th style="text-align:left;">
+publisher
+</th>
+<th style="text-align:left;">
+skin_color
+</th>
+<th style="text-align:left;">
+alignment
+</th>
+<th style="text-align:right;">
+weight
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+22
+</td>
+<td style="text-align:left;">
+Angel
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+Blond
+</td>
+<td style="text-align:right;">
+183
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+68
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+23
+</td>
+<td style="text-align:left;">
+Angel
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+Vampire
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+Dark Horse Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+47
+</td>
+<td style="text-align:left;">
+Atlas
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+brown
+</td>
+<td style="text-align:left;">
+Mutant
+</td>
+<td style="text-align:left;">
+Red
+</td>
+<td style="text-align:right;">
+183
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+101
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+48
+</td>
+<td style="text-align:left;">
+Atlas
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+God / Eternal
+</td>
+<td style="text-align:left;">
+Brown
+</td>
+<td style="text-align:right;">
+198
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+bad
+</td>
+<td style="text-align:right;">
+126
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+49
+</td>
+<td style="text-align:left;">
+Atom
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+Red
+</td>
+<td style="text-align:right;">
+178
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+68
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:left;">
+Atom
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+62
+</td>
+<td style="text-align:left;">
+Batgirl
+</td>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+63
+</td>
+<td style="text-align:left;">
+Batgirl
+</td>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+green
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Red
+</td>
+<td style="text-align:right;">
+170
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+57
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+68
+</td>
+<td style="text-align:left;">
+Batman
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+black
+</td>
+<td style="text-align:right;">
+188
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+95
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+69
+</td>
+<td style="text-align:left;">
+Batman
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Black
+</td>
+<td style="text-align:right;">
+178
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+77
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+96
+</td>
+<td style="text-align:left;">
+Black Canary
+</td>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Blond
+</td>
+<td style="text-align:right;">
+165
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+58
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+97
+</td>
+<td style="text-align:left;">
+Black Canary
+</td>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+Metahuman
+</td>
+<td style="text-align:left;">
+Blond
+</td>
+<td style="text-align:right;">
+170
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+59
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+115
+</td>
+<td style="text-align:left;">
+Blizzard
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+bad
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+116
+</td>
+<td style="text-align:left;">
+Blizzard
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+Brown
+</td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+bad
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+122
+</td>
+<td style="text-align:left;">
+Blue Beetle
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+Brown
+</td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+123
+</td>
+<td style="text-align:left;">
+Blue Beetle
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+155
+</td>
+<td style="text-align:left;">
+Captain Marvel
+</td>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+Human-Kree
+</td>
+<td style="text-align:left;">
+Blond
+</td>
+<td style="text-align:right;">
+180
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+74
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+156
+</td>
+<td style="text-align:left;">
+Captain Marvel
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Black
+</td>
+<td style="text-align:right;">
+193
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+101
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+259
+</td>
+<td style="text-align:left;">
+Firestorm
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+brown
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+Black
+</td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+260
+</td>
+<td style="text-align:left;">
+Firestorm
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Auburn
+</td>
+<td style="text-align:right;">
+188
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+91
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+289
+</td>
+<td style="text-align:left;">
+Goliath
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+290
+</td>
+<td style="text-align:left;">
+Goliath
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+291
+</td>
+<td style="text-align:left;">
+Goliath
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+481
+</td>
+<td style="text-align:left;">
+Namor
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+482
+</td>
+<td style="text-align:left;">
+Namor
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+grey
+</td>
+<td style="text-align:left;">
+Atlantean
+</td>
+<td style="text-align:left;">
+Black
+</td>
+<td style="text-align:right;">
+188
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+125
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+496
+</td>
+<td style="text-align:left;">
+Nova
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+brown
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Brown
+</td>
+<td style="text-align:right;">
+185
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+86
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+497
+</td>
+<td style="text-align:left;">
+Nova
+</td>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+white
+</td>
+<td style="text-align:left;">
+Human / Cosmic
+</td>
+<td style="text-align:left;">
+Red
+</td>
+<td style="text-align:right;">
+163
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+gold
+</td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+59
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+617
+</td>
+<td style="text-align:left;">
+Speedy
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+618
+</td>
+<td style="text-align:left;">
+Speedy
+</td>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+green
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Brown
+</td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+622
+</td>
+<td style="text-align:left;">
+Spider-Man
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+hazel
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Brown
+</td>
+<td style="text-align:right;">
+178
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+74
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+623
+</td>
+<td style="text-align:left;">
+Spider-Man
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+red
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Brown
+</td>
+<td style="text-align:right;">
+178
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+77
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+624
+</td>
+<td style="text-align:left;">
+Spider-Man
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+brown
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Black
+</td>
+<td style="text-align:right;">
+157
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+56
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+673
+</td>
+<td style="text-align:left;">
+Toxin
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+Symbiote
+</td>
+<td style="text-align:left;">
+Brown
+</td>
+<td style="text-align:right;">
+188
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+97
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+674
+</td>
+<td style="text-align:left;">
+Toxin
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+black
+</td>
+<td style="text-align:left;">
+Symbiote
+</td>
+<td style="text-align:left;">
+Blond
+</td>
+<td style="text-align:right;">
+191
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+117
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+695
+</td>
+<td style="text-align:left;">
+Vindicator
+</td>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+green
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Red
+</td>
+<td style="text-align:right;">
+165
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+54
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+696
+</td>
+<td style="text-align:left;">
+Vindicator
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+</tbody>
+</table></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul>
+<p>From this table, there are primarily two different reasons for the duplicates:</p>
+<p><strong>1. </strong> Between two rows, some columns are missing for the same superhero (maybe double entry where one of it is incomplete). Example: x = 49 and 50, 62 and 63. For such groups it’s better to remove the one with incomplete data</p>
+<p><strong>2. </strong> Incorrect data in one row compared to the other</p>
+<p>Removing duplicates because of (1) was easy. To remove duplicates caused by (2) a lot of manual work was involved. On Googling about the superheroes, I removed those which had incorrect information.</p>
+<pre class="r"><code>#Manual cleaning by removing rows
+dup_rows &lt;- c(23, 48, 50, 62, 69, 96, 115, 123, 155, 259, 289, 290, 481, 496, 617, 623, 624, 674, 696)
+
+#Deduped dataframe with the superheroes information
+heroes_information_deduped_df &lt;- heroes_information_df %&gt;% 
+  filter(!(x %in% dup_rows))
+
+#Taking a look at the dataframe again
+heroes_information_deduped_df %&gt;% 
+  filter(name %in% dup_names$name) %&gt;% 
+  kable() %&gt;% 
+  kable_styling(full_width = FALSE)</code></pre>
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;">
+x
+</th>
+<th style="text-align:left;">
+name
+</th>
+<th style="text-align:left;">
+gender
+</th>
+<th style="text-align:left;">
+eye_color
+</th>
+<th style="text-align:left;">
+race
+</th>
+<th style="text-align:left;">
+hair_color
+</th>
+<th style="text-align:right;">
+height
+</th>
+<th style="text-align:left;">
+publisher
+</th>
+<th style="text-align:left;">
+skin_color
+</th>
+<th style="text-align:left;">
+alignment
+</th>
+<th style="text-align:right;">
+weight
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+22
+</td>
+<td style="text-align:left;">
+Angel
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+Blond
+</td>
+<td style="text-align:right;">
+183
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+68
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+47
+</td>
+<td style="text-align:left;">
+Atlas
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+brown
+</td>
+<td style="text-align:left;">
+Mutant
+</td>
+<td style="text-align:left;">
+Red
+</td>
+<td style="text-align:right;">
+183
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+101
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+49
+</td>
+<td style="text-align:left;">
+Atom
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+Red
+</td>
+<td style="text-align:right;">
+178
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+68
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+63
+</td>
+<td style="text-align:left;">
+Batgirl
+</td>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+green
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Red
+</td>
+<td style="text-align:right;">
+170
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+57
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+68
+</td>
+<td style="text-align:left;">
+Batman
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+black
+</td>
+<td style="text-align:right;">
+188
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+95
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+97
+</td>
+<td style="text-align:left;">
+Black Canary
+</td>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+Metahuman
+</td>
+<td style="text-align:left;">
+Blond
+</td>
+<td style="text-align:right;">
+170
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+59
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+116
+</td>
+<td style="text-align:left;">
+Blizzard
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+Brown
+</td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+bad
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+122
+</td>
+<td style="text-align:left;">
+Blue Beetle
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+Brown
+</td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+156
+</td>
+<td style="text-align:left;">
+Captain Marvel
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Black
+</td>
+<td style="text-align:right;">
+193
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+101
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+260
+</td>
+<td style="text-align:left;">
+Firestorm
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Auburn
+</td>
+<td style="text-align:right;">
+188
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+91
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+291
+</td>
+<td style="text-align:left;">
+Goliath
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+482
+</td>
+<td style="text-align:left;">
+Namor
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+grey
+</td>
+<td style="text-align:left;">
+Atlantean
+</td>
+<td style="text-align:left;">
+Black
+</td>
+<td style="text-align:right;">
+188
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+125
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+497
+</td>
+<td style="text-align:left;">
+Nova
+</td>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+white
+</td>
+<td style="text-align:left;">
+Human / Cosmic
+</td>
+<td style="text-align:left;">
+Red
+</td>
+<td style="text-align:right;">
+163
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+gold
+</td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+59
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+618
+</td>
+<td style="text-align:left;">
+Speedy
+</td>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+green
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Brown
+</td>
+<td style="text-align:right;">
+-99
+</td>
+<td style="text-align:left;">
+DC Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+-99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+622
+</td>
+<td style="text-align:left;">
+Spider-Man
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+hazel
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Brown
+</td>
+<td style="text-align:right;">
+178
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+74
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+673
+</td>
+<td style="text-align:left;">
+Toxin
+</td>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+blue
+</td>
+<td style="text-align:left;">
+Symbiote
+</td>
+<td style="text-align:left;">
+Brown
+</td>
+<td style="text-align:right;">
+188
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+97
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+695
+</td>
+<td style="text-align:left;">
+Vindicator
+</td>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+green
+</td>
+<td style="text-align:left;">
+Human
+</td>
+<td style="text-align:left;">
+Red
+</td>
+<td style="text-align:right;">
+165
+</td>
+<td style="text-align:left;">
+Marvel Comics
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+54
+</td>
+</tr>
+</tbody>
+</table></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul>
+</div>
+<div id="how-many-different-publishers-are-there" class="section level4">
+<h4><strong>How many different Publishers are there?</strong></h4>
+<pre class="r"><code>heroes_information_deduped_df %&gt;% 
+    summarise(num_distinct_publishers = n_distinct(publisher))</code></pre>
+<pre><code>##   num_distinct_publishers
+## 1                      25</code></pre>
+<p>There are 25 distinct publishers.</p>
+<pre class="r"><code>heroes_information_deduped_df %&gt;% 
+  group_by(publisher) %&gt;% 
+  summarise(n = n()) %&gt;% 
+  mutate(total = sum(n),
+         pct = n/total,
+         publisher = fct_reorder(publisher, pct)) %&gt;% 
+  ggplot(aes(x=publisher, y = pct)) +
+  geom_col() +
+  scale_y_continuous(labels = percent, breaks = seq(0, .60, .05)) +
+  coord_flip() +
+  ggtitle(&#39;Distribution of superheroes created among all Publishers&#39;)</code></pre>
+<p><img src="/post/2020-04-12-exploratory-data-analysis-on-superheroes_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p><strong>DC Comics</strong> and <strong>Marvel Comics</strong> are the biggest publishers creating about 29% and 53% of the superheroes respectively</p>
+<p>Using fct_lump() function to lump together all publishers other than Marvel and DC into ‘Other’ since the rest of the publishers form a small part out of the entire population.</p>
+<pre class="r"><code>heroes_information_deduped_df %&gt;% 
+  mutate(publisher = fct_lump(publisher, n = 2)) %&gt;% 
+  group_by(publisher) %&gt;% 
+  summarise(n = n()) %&gt;% 
+  mutate(total = sum(n),
+         pct = n/total,
+         publisher = fct_reorder(publisher, pct)) %&gt;% 
+  ggplot(aes(x=publisher, y = pct)) +
+  geom_col() +
+  scale_y_continuous(labels = percent, breaks = seq(0, .60, .05)) +
+  ggtitle(&#39;Distribution of superheroes created among all Publishers - after fct_lump()&#39;)</code></pre>
+<p><img src="/post/2020-04-12-exploratory-data-analysis-on-superheroes_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+</div>
+<div id="do-the-publishers-create-more-good-or-bad-heroes" class="section level4">
+<h4><strong>Do the publishers create more good or bad heroes?</strong></h4>
+<p>DC and Marvel have a similar distribution among good and bad superheroes. Approximately 65% of their superheroes are good and about 30% of them are bad. The rest of the publishers (‘Other’) seem to produce a slightly higher percentage of good heroes, about 72%.</p>
+<pre class="r"><code>heroes_information_deduped_df %&gt;% 
+  mutate(publisher = fct_lump(publisher, n = 2)) %&gt;% 
+  group_by(publisher, alignment) %&gt;% 
+  summarize(n = n()) %&gt;% 
+  mutate(percentage = n / sum(n)) %&gt;% 
+  ggplot(aes(x=alignment, y = percentage, fill = publisher))+
+  geom_col(position = &quot;dodge2&quot;) +
+  scale_y_continuous(labels = percent, breaks = seq(0, .80, .10)) +
+  ggtitle(&#39;Distribution of Good and Bad superheroes within Publishers&#39;)</code></pre>
+<p><img src="/post/2020-04-12-exploratory-data-analysis-on-superheroes_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+</div>
+<div id="percentage-distributions" class="section level4">
+<h4><strong>Percentage Distributions</strong></h4>
+<p>These plots show the frequency distribution among some features of Superheroes [Hair Color, Eye Color] by specific groups [Alignment, Producers, Gender]</p>
+<p>I’ve used the <a href="https://patchwork.data-imaginist.com/index.html">patchwork</a> package to show the plots. I wanted to order the percentages by the descending order but was unable to do it the way I wanted to when I used facet_wrap in ggplot(). This <a href="https://stackoverflow.com/questions/52029785/sorting-in-ggplot-with-facet-wrap">link</a> from Stackoverflow has some workarounds but the end result was some unordered plots because not all features are present among all the groups. Thanks to patchwork for helping me create these plots.</p>
+<div id="hair-color---alignment" class="section level5">
+<h5><strong>Hair Color - Alignment</strong></h5>
+<pre class="r"><code>hair_good &lt;- heroes_information_deduped_df %&gt;% 
+  filter(alignment %in% c(&#39;good&#39;)) %&gt;% 
+  mutate(hair_color = tolower(hair_color),
+         hair_color = ifelse(hair_color == &#39;brownn&#39;, &#39;brown&#39;, hair_color)) %&gt;% 
+  group_by(hair_color) %&gt;% 
+  summarise(n = n()) %&gt;% 
+  mutate(total = sum(n),
+         pct = n/total,
+         hair_color = fct_reorder(hair_color, pct)) %&gt;% 
+  ggplot(aes(hair_color, pct)) +
+  geom_col() +
+  scale_y_continuous(labels = percent)+
+  coord_flip()+
+  ggtitle(&#39;Good Heroes - Hair Color&#39;) 
+
+hair_bad &lt;- heroes_information_deduped_df %&gt;% 
+  filter(alignment %in% c(&#39;bad&#39;)) %&gt;% 
+  mutate(hair_color = tolower(hair_color),
+         hair_color = ifelse(hair_color == &#39;brownn&#39;, &#39;brown&#39;, hair_color)) %&gt;% 
+  group_by(hair_color) %&gt;% 
+  summarise(n = n()) %&gt;% 
+  mutate(total = sum(n),
+         pct = n/total,
+         hair_color = fct_reorder(hair_color, pct)) %&gt;% 
+  ggplot(aes(hair_color, pct)) +
+  geom_col() +
+  scale_y_continuous(labels = percent)+
+  theme(axis.title.y=element_blank()) +
+  coord_flip()+
+  ggtitle(&#39;Bad Heroes - Hair Color&#39;) 
+
+#Using the patchwork package to join two plots together
+hair_good + hair_bad</code></pre>
+<p><img src="/post/2020-04-12-exploratory-data-analysis-on-superheroes_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<p>Among the good superheroes, data is missing for 25% of them. 25% of them have black hair and 17.5% of them have blond hair. The good heroes have a wider spectrum of colors for their hair compared to the bad heroes.</p>
+<p>For the bad superheroes, data is missing for 25% of them. Black is the most common hair color followed by ‘No Hair’.</p>
+</div>
+<div id="hair-color---publisher" class="section level5">
+<h5><strong>Hair Color - Publisher</strong></h5>
+<pre class="r"><code>hair_dc &lt;- heroes_information_deduped_df %&gt;% 
+  filter(publisher %in% c(&#39;DC Comics&#39;)) %&gt;% 
+  mutate(hair_color = tolower(hair_color),
+         hair_color = ifelse(hair_color == &#39;brownn&#39;, &#39;brown&#39;, hair_color)) %&gt;% 
+  group_by(hair_color) %&gt;% 
+  summarise(n = n()) %&gt;% 
+  mutate(pct = round(n*100/sum(n),1),
+         hair_color = fct_reorder(hair_color, pct)) %&gt;% 
+  ggplot(aes(x=hair_color, y = pct)) +
+  geom_col() +
+  coord_flip()+
+  ggtitle(&#39;DC Comics - Hair Color&#39;) 
+
+hair_marvel &lt;- heroes_information_deduped_df %&gt;% 
+  filter(publisher %in% c(&#39;Marvel Comics&#39;)) %&gt;% 
+  mutate(hair_color = tolower(hair_color),
+         hair_color = ifelse(hair_color == &#39;brownn&#39;, &#39;brown&#39;, hair_color)) %&gt;% 
+  group_by(hair_color) %&gt;% 
+  summarise(n = n()) %&gt;% 
+  mutate(pct = round(n*100/sum(n),1),
+         hair_color = fct_reorder(hair_color, pct)) %&gt;% 
+  ggplot(aes(x=hair_color, y = pct)) +
+  geom_col() +
+  theme(axis.title.y=element_blank()) +
+  coord_flip()+
+  ggtitle(&#39;Marvel Comics - Hair Color&#39;) 
+
+hair_dc + hair_marvel</code></pre>
+<p><img src="/post/2020-04-12-exploratory-data-analysis-on-superheroes_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<p>Black, Red and Brown are the most common hair colors among superheroes from DC Comics while Black, Blond and Brown are most common hair colors from Marvel Comics.</p>
+<p>Super heroes from Marvel Comics have a more colors for their hair than those from DC Comics.</p>
+</div>
+<div id="eye-color---alignment" class="section level5">
+<h5><strong>Eye Color - Alignment</strong></h5>
+<pre class="r"><code>eye_good &lt;- heroes_information_deduped_df %&gt;% 
+  filter(alignment %in% c(&#39;good&#39;)) %&gt;% 
+  mutate(eye_color = tolower(eye_color)
+         ) %&gt;% 
+  group_by(eye_color) %&gt;% 
+  summarise(n = n()) %&gt;% 
+  mutate(pct = round(n*100/sum(n),1),
+         eye_color = fct_reorder(eye_color, pct)) %&gt;% 
+  ggplot(aes(x=eye_color, y = pct)) +
+  geom_col() +
+  coord_flip()+
+  ggtitle(&#39;Good Heroes - Eye Color&#39;) 
+
+eye_bad &lt;- heroes_information_deduped_df %&gt;% 
+  filter(alignment %in% c(&#39;bad&#39;)) %&gt;% 
+  mutate(eye_color = tolower(eye_color)
+         ) %&gt;% 
+  group_by(eye_color) %&gt;% 
+  summarise(n = n()) %&gt;% 
+  mutate(pct = round(n*100/sum(n),1),
+         eye_color = fct_reorder(eye_color, pct)) %&gt;% 
+  ggplot(aes(x=eye_color, y = pct)) +
+  geom_col() +
+  theme(axis.title.y=element_blank()) +
+  coord_flip()+
+  ggtitle(&#39;Bad Heroes - Eye Color&#39;) 
+
+eye_good + eye_bad</code></pre>
+<p><img src="/post/2020-04-12-exploratory-data-analysis-on-superheroes_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<p>34% of the good superheroes have blue eyes while 23% of the bad superheroes have blue eyes. 12% of bad superheroes have red eyes but less than 5% of the good superheroes have red eyes. Brown is a common eye color among good and bad superheroes.</p>
+</div>
+<div id="eye-color---publisher" class="section level5">
+<h5><strong>Eye Color - Publisher</strong></h5>
+<pre class="r"><code>eye_dc &lt;- heroes_information_deduped_df %&gt;% 
+  filter(publisher %in% c(&#39;DC Comics&#39;)) %&gt;% 
+  mutate(eye_color = tolower(eye_color)
+         ) %&gt;% 
+  group_by(eye_color) %&gt;% 
+  summarise(n = n()) %&gt;% 
+  mutate(pct = round(n*100/sum(n),1),
+         eye_color = fct_reorder(eye_color, pct)) %&gt;% 
+  ggplot(aes(x=eye_color, y = pct)) +
+  geom_col() +
+  coord_flip()+
+  ggtitle(&#39;DC Comics - Eye Color&#39;) 
+
+eye_marvel &lt;- heroes_information_deduped_df %&gt;% 
+  filter(publisher %in% c(&#39;Marvel Comics&#39;)) %&gt;% 
+  mutate(eye_color = tolower(eye_color)
+         ) %&gt;% 
+  group_by(eye_color) %&gt;% 
+  summarise(n = n()) %&gt;% 
+  mutate(pct = round(n*100/sum(n),1),
+         eye_color = fct_reorder(eye_color, pct)) %&gt;% 
+  ggplot(aes(x=eye_color, y = pct)) +
+  geom_col() +
+  theme(axis.title.y=element_blank()) +
+  coord_flip()+
+  ggtitle(&#39;Marvel Comics - Eye Color&#39;) 
+
+eye_dc + eye_marvel</code></pre>
+<p><img src="/post/2020-04-12-exploratory-data-analysis-on-superheroes_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<p>38% of DC Comics and 33% of Marvel Comics superheroes have blue eyes. Brown eyed superheroes are more common among Marvel Comics and Green eyed superheroes are more common among DC Comics.</p>
+</div>
+<div id="eye-color---gender" class="section level5">
+<h5><strong>Eye Color - Gender</strong></h5>
+<p>68.5% of the superheroes are Men and 27.5% of them are Women. 4% don’t have a specified gender</p>
+<pre class="r"><code>heroes_information_deduped_df %&gt;%  
+  group_by(gender) %&gt;% 
+  summarise(n = n()) %&gt;% 
+  mutate(pct = round(n*100/sum(n), 1))</code></pre>
+<pre><code>## # A tibble: 3 x 3
+##   gender     n   pct
+##   &lt;fct&gt;  &lt;int&gt; &lt;dbl&gt;
+## 1 -         28   3.9
+## 2 Female   197  27.6
+## 3 Male     490  68.5</code></pre>
+<pre class="r"><code>eye_male &lt;- heroes_information_deduped_df %&gt;% 
+  filter(gender == &#39;Male&#39;) %&gt;% 
+  mutate(eye_color = tolower(eye_color)
+         ) %&gt;% 
+  group_by(eye_color) %&gt;% 
+  summarise(n = n()) %&gt;% 
+  mutate(pct = round(n*100/sum(n),1),
+         eye_color = fct_reorder(eye_color, pct)) %&gt;% 
+  ggplot(aes(x=eye_color, y = pct)) +
+  geom_col() +
+  coord_flip()+
+  ggtitle(&#39;Male&#39;) 
+
+eye_female &lt;- heroes_information_deduped_df %&gt;% 
+  filter(gender == &#39;Female&#39;) %&gt;% 
+  mutate(eye_color = tolower(eye_color)
+         ) %&gt;% 
+  group_by(eye_color) %&gt;% 
+  summarise(n = n()) %&gt;% 
+  mutate(pct = round(n*100/sum(n),1),
+         eye_color = fct_reorder(eye_color, pct)) %&gt;% 
+  ggplot(aes(x=eye_color, y = pct)) +
+  geom_col() +
+  theme(axis.title.y=element_blank()) +
+  coord_flip()+
+  ggtitle(&#39;Female&#39;) 
+
+eye_null &lt;- heroes_information_deduped_df %&gt;% 
+  filter(gender == &#39;-&#39;) %&gt;% 
+  mutate(eye_color = tolower(eye_color)
+         ) %&gt;% 
+  group_by(eye_color) %&gt;% 
+  summarise(n = n()) %&gt;% 
+  mutate(pct = round(n*100/sum(n),1),
+         eye_color = fct_reorder(eye_color, pct)) %&gt;% 
+  ggplot(aes(x=eye_color, y = pct)) +
+  geom_col() +
+  theme(axis.title.y=element_blank()) +
+  coord_flip()+
+  ggtitle(&#39;No Gender&#39;) 
+
+p1 &lt;- (eye_male + eye_female + eye_null)
+
+p1 + plot_annotation(title = &#39;Gender - Eye Color&#39;)</code></pre>
+<p><img src="/post/2020-04-12-exploratory-data-analysis-on-superheroes_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
+<p>Among the men superheroes, blue, brown and red are the most common hair colors. Blue, green and brown are the most common colors among women. Blue forms close to 30% of the men and women’s population. There are a lot more women having green eyes than men.</p>
+</div>
+</div>
+<div id="height-and-weight-of-superheroes" class="section level4">
+<h4><strong>Height and Weight of superheroes</strong></h4>
+<div id="height" class="section level5">
+<h5><strong>Height</strong></h5>
+<pre class="r"><code>heroes_information_deduped_df %&gt;% 
+  filter(!gender %in% c(&#39;-&#39;),
+         alignment %in% c(&#39;good&#39;, &#39;bad&#39;)) %&gt;% 
+  mutate(height = ifelse(height &lt; 0, NA, height),
+         weight = ifelse(weight &lt; 0, NA, weight)) %&gt;% 
+  ggplot(aes(x=alignment, y=height, fill=gender)) +
+  geom_boxplot() </code></pre>
+<pre><code>## Warning: Removed 186 rows containing non-finite values (stat_boxplot).</code></pre>
+<p><img src="/post/2020-04-12-exploratory-data-analysis-on-superheroes_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
+<p>There are a 186 superheroes with missing height values. There are a lot of outliers among Men - good and bad, compared to Women. As expected, Men weigh heavier than women.</p>
+<p>The function skim() from <a href="https://github.com/ropensci/skimr#skimr">skimr</a> package is useful to find out the Five Number summary for numeric values and also has the histograms for the frequency distribution.</p>
+<p>Bad Men follow a normal distribution. Good Men and Women are skewed right while Bad Women are skewed left.</p>
+<pre class="r"><code>heroes_information_deduped_df %&gt;% 
+  filter(!gender %in% c(&#39;-&#39;),
+         alignment %in% c(&#39;good&#39;, &#39;bad&#39;)) %&gt;% 
+  mutate(height = ifelse(height &lt; 0, NA, height),
+         weight = ifelse(weight &lt; 0, NA, weight)) %&gt;% 
+  group_by(gender, alignment) %&gt;% 
+  skimr::skim(height) %&gt;% 
+  select(-skim_type, -skim_variable, -n_missing, -numeric.sd) %&gt;% 
+  kable() %&gt;% 
+  kable_styling(full_width = FALSE) </code></pre>
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+gender
+</th>
+<th style="text-align:left;">
+alignment
+</th>
+<th style="text-align:right;">
+complete_rate
+</th>
+<th style="text-align:right;">
+numeric.mean
+</th>
+<th style="text-align:right;">
+numeric.p0
+</th>
+<th style="text-align:right;">
+numeric.p25
+</th>
+<th style="text-align:right;">
+numeric.p50
+</th>
+<th style="text-align:right;">
+numeric.p75
+</th>
+<th style="text-align:right;">
+numeric.p100
+</th>
+<th style="text-align:left;">
+numeric.hist
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+bad
+</td>
+<td style="text-align:right;">
+0.7142857
+</td>
+<td style="text-align:right;">
+174.3800
+</td>
+<td style="text-align:right;">
+62.5
+</td>
+<td style="text-align:right;">
+170
+</td>
+<td style="text-align:right;">
+175
+</td>
+<td style="text-align:right;">
+180.00
+</td>
+<td style="text-align:right;">
+218
+</td>
+<td style="text-align:left;">
+▁▁▁▇▂
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+0.7278481
+</td>
+<td style="text-align:right;">
+174.8000
+</td>
+<td style="text-align:right;">
+137.0
+</td>
+<td style="text-align:right;">
+168
+</td>
+<td style="text-align:right;">
+170
+</td>
+<td style="text-align:right;">
+178.00
+</td>
+<td style="text-align:right;">
+366
+</td>
+<td style="text-align:left;">
+▇▁▁▁▁
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+bad
+</td>
+<td style="text-align:right;">
+0.7300613
+</td>
+<td style="text-align:right;">
+190.1571
+</td>
+<td style="text-align:right;">
+15.2
+</td>
+<td style="text-align:right;">
+180
+</td>
+<td style="text-align:right;">
+188
+</td>
+<td style="text-align:right;">
+196.00
+</td>
+<td style="text-align:right;">
+366
+</td>
+<td style="text-align:left;">
+▁▁▇▁▁
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+0.7062706
+</td>
+<td style="text-align:right;">
+189.1696
+</td>
+<td style="text-align:right;">
+30.5
+</td>
+<td style="text-align:right;">
+178
+</td>
+<td style="text-align:right;">
+183
+</td>
+<td style="text-align:right;">
+190.25
+</td>
+<td style="text-align:right;">
+975
+</td>
+<td style="text-align:left;">
+▇▁▁▁▁
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="weight" class="section level5">
+<h5><strong>Weight</strong></h5>
+<pre class="r"><code>heroes_information_deduped_df %&gt;% 
+  filter(!gender %in% c(&#39;-&#39;),
+         alignment %in% c(&#39;good&#39;, &#39;bad&#39;)) %&gt;% 
+  mutate(height = ifelse(height &lt; 0, NA, height),
+         weight = ifelse(weight &lt; 0, NA, weight)) %&gt;% 
+  ggplot(aes(x=alignment, y=weight, fill=gender)) +
+  geom_boxplot() </code></pre>
+<pre><code>## Warning: Removed 205 rows containing non-finite values (stat_boxplot).</code></pre>
+<p><img src="/post/2020-04-12-exploratory-data-analysis-on-superheroes_files/figure-html/unnamed-chunk-18-1.png" width="672" /></p>
+<p>There are 205 superheroes with missing weight. Among all the bad superheroes, men have a wider spread in weight than women.</p>
+<pre class="r"><code>heroes_information_deduped_df %&gt;% 
+  filter(!gender %in% c(&#39;-&#39;),
+         alignment %in% c(&#39;good&#39;, &#39;bad&#39;)) %&gt;% 
+  mutate(height = ifelse(height &lt; 0, NA, height),
+         weight = ifelse(weight &lt; 0, NA, weight)) %&gt;% 
+  group_by(gender, alignment) %&gt;% 
+  skimr::skim(weight) %&gt;% 
+  select(-skim_type, -skim_variable, -n_missing, -numeric.sd) %&gt;% 
+  kable() %&gt;% 
+  kable_styling(full_width = FALSE) </code></pre>
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+gender
+</th>
+<th style="text-align:left;">
+alignment
+</th>
+<th style="text-align:right;">
+complete_rate
+</th>
+<th style="text-align:right;">
+numeric.mean
+</th>
+<th style="text-align:right;">
+numeric.p0
+</th>
+<th style="text-align:right;">
+numeric.p25
+</th>
+<th style="text-align:right;">
+numeric.p50
+</th>
+<th style="text-align:right;">
+numeric.p75
+</th>
+<th style="text-align:right;">
+numeric.p100
+</th>
+<th style="text-align:left;">
+numeric.hist
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+bad
+</td>
+<td style="text-align:right;">
+0.7428571
+</td>
+<td style="text-align:right;">
+114.6154
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+54.25
+</td>
+<td style="text-align:right;">
+59
+</td>
+<td style="text-align:right;">
+98.75
+</td>
+<td style="text-align:right;">
+630
+</td>
+<td style="text-align:left;">
+▇▁▁▁▁
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+0.7088608
+</td>
+<td style="text-align:right;">
+71.1250
+</td>
+<td style="text-align:right;">
+41
+</td>
+<td style="text-align:right;">
+54.00
+</td>
+<td style="text-align:right;">
+57
+</td>
+<td style="text-align:right;">
+63.00
+</td>
+<td style="text-align:right;">
+473
+</td>
+<td style="text-align:left;">
+▇▁▁▁▁
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+bad
+</td>
+<td style="text-align:right;">
+0.6932515
+</td>
+<td style="text-align:right;">
+144.1681
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+81.00
+</td>
+<td style="text-align:right;">
+97
+</td>
+<td style="text-align:right;">
+169.00
+</td>
+<td style="text-align:right;">
+817
+</td>
+<td style="text-align:left;">
+▇▂▁▁▁
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:left;">
+good
+</td>
+<td style="text-align:right;">
+0.6699670
+</td>
+<td style="text-align:right;">
+108.5616
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+77.00
+</td>
+<td style="text-align:right;">
+86
+</td>
+<td style="text-align:right;">
+105.00
+</td>
+<td style="text-align:right;">
+900
+</td>
+<td style="text-align:left;">
+▇▁▁▁▁
+</td>
+</tr>
+</tbody>
+</table>
+<p>All the four groups are skewed right.</p>
+</div>
+</div>
+<div id="superhero-powers" class="section level4">
+<h4><strong>Superhero Powers</strong></h4>
+<pre class="r"><code>super_hero_powers_df %&gt;% 
+  select(1:7) %&gt;% 
+  head() %&gt;% 
+  kable() %&gt;% 
+  kable_styling(full_width = FALSE)</code></pre>
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+hero_names
+</th>
+<th style="text-align:left;">
+agility
+</th>
+<th style="text-align:left;">
+accelerated_healing
+</th>
+<th style="text-align:left;">
+lantern_power_ring
+</th>
+<th style="text-align:left;">
+dimensional_awareness
+</th>
+<th style="text-align:left;">
+cold_resistance
+</th>
+<th style="text-align:left;">
+durability
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+3-D Man
+</td>
+<td style="text-align:left;">
+True
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+False
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+A-Bomb
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+True
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+True
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Abe Sapien
+</td>
+<td style="text-align:left;">
+True
+</td>
+<td style="text-align:left;">
+True
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+True
+</td>
+<td style="text-align:left;">
+True
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Abin Sur
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+True
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+False
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Abomination
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+True
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+False
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Abraxas
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+True
+</td>
+<td style="text-align:left;">
+False
+</td>
+<td style="text-align:left;">
+False
+</td>
+</tr>
+</tbody>
+</table>
+<p>It has a list of all the superhero powers for the heroes. As seen from the sample data, the columns were read in as factors. The below code snippet maps the columns from True and False to 1 and 0.</p>
+<pre class="r"><code>super_hero_powers_transformed_df &lt;- super_hero_powers_df %&gt;% 
+  mutate_if(is.factor, as.character) %&gt;% 
+  mutate_if(!names(.) %in% c(&#39;hero_names&#39;), 
+            list(~as.logical(.))) %&gt;% 
+  mutate_if(is.logical,as.numeric) 
+
+super_hero_powers_transformed_df %&gt;% 
+  select(1:7) %&gt;% 
+  head() %&gt;% 
+  kable() %&gt;% 
+  kable_styling(full_width = FALSE)</code></pre>
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+hero_names
+</th>
+<th style="text-align:right;">
+agility
+</th>
+<th style="text-align:right;">
+accelerated_healing
+</th>
+<th style="text-align:right;">
+lantern_power_ring
+</th>
+<th style="text-align:right;">
+dimensional_awareness
+</th>
+<th style="text-align:right;">
+cold_resistance
+</th>
+<th style="text-align:right;">
+durability
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+3-D Man
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+A-Bomb
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Abe Sapien
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Abin Sur
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Abomination
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Abraxas
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+</tbody>
+</table>
+<p>There are some rows which are present in one dataframe but not in the other. I have decided to do an inner_join between the two dataframes so only the common rows are selected.</p>
+<pre class="r"><code>nrow(heroes_information_deduped_df)</code></pre>
+<pre><code>## [1] 715</code></pre>
+<pre class="r"><code>nrow(super_hero_powers_transformed_df)</code></pre>
+<pre><code>## [1] 667</code></pre>
+<pre class="r"><code>superhero_df &lt;- heroes_information_deduped_df %&gt;% 
+  inner_join(super_hero_powers_transformed_df, by = c(&quot;name&quot; = &quot;hero_names&quot;))
+
+nrow(superhero_df)</code></pre>
+<pre><code>## [1] 643</code></pre>
+</div>
+<div id="superhero-powers-1" class="section level4">
+<h4><strong>Superhero Powers</strong></h4>
+<p>For analyzing this dataset, I have selected only those superheoes who are present in both the datasets (hero_information and superhero_powers)</p>
+<pre class="r"><code> super_hero_powers_transformed_df %&gt;% 
+  filter(hero_names %in% heroes_information_deduped_df$name) %&gt;% 
+  summarise_if(is.numeric, sum, na.rm=TRUE) %&gt;% 
+  pivot_longer(
+    cols = colnames(.),
+    names_to = &quot;power&quot;, 
+    values_to = &quot;count&quot;) %&gt;% 
+    mutate(pct = count/643) %&gt;% 
+    arrange(desc(count)) %&gt;% 
+  filter(pct &gt; 0.1) %&gt;% 
+  mutate(power = fct_reorder(power, pct)) %&gt;% 
+  ggplot(aes(x=power, y = pct))+
+  geom_col() +
+  scale_y_continuous(labels = percent, breaks = seq(0, .60, .05)) +
+  coord_flip() +
+  ggtitle(&#39;Common Superhero Powers&#39;)</code></pre>
+<p><img src="/post/2020-04-12-exploratory-data-analysis-on-superheroes_files/figure-html/unnamed-chunk-23-1.png" width="672" /></p>
+<p>As one should expect, the most common superhero power is <em>Super Strength</em>, 55% of the heroes have this power. <em>Stamina</em>, <em>Durability</em>, <em>Super Speed</em>, <em>Agility</em>, <em>Flight</em> are the top powers among the superheroes.</p>
+<pre class="r"><code> super_hero_powers_transformed_df %&gt;% 
+  filter(hero_names %in% heroes_information_deduped_df$name) %&gt;% 
+  mutate(num_powers = select(., agility:omniscient) %&gt;% rowSums(na.rm=TRUE)) %&gt;% 
+  select(hero_names, num_powers) %&gt;% 
+  arrange(desc(num_powers)) %&gt;% 
+  filter(num_powers &gt; 25) %&gt;% 
+  mutate(hero_names = fct_reorder(hero_names, num_powers)) %&gt;% 
+  ggplot(aes(x=hero_names, y = num_powers)) +
+  geom_col() +
+  coord_flip()</code></pre>
+<p><img src="/post/2020-04-12-exploratory-data-analysis-on-superheroes_files/figure-html/unnamed-chunk-24-1.png" width="672" /></p>
+<p><em>Spectre</em> created by DC Comics is the most powerful hero with almost 50 superpowers. <em>Amazo</em> comes a close second with about 44 superpowers. <em>Martian Manhunter</em>, <em>Living Tribunal</em> and <em>Man of Miracles</em> make it to the top 5 group in terms of number of superheroes.</p>
+<pre class="r"><code>super_hero_powers_transformed_df %&gt;% 
+  inner_join(heroes_information_deduped_df[c(&#39;name&#39;, &#39;publisher&#39;, &#39;gender&#39;, &#39;alignment&#39;)], by = c(&quot;hero_names&quot; = &quot;name&quot;)) %&gt;% 
+  mutate(num_powers = select(., agility:omniscient) %&gt;% rowSums(na.rm=TRUE)) %&gt;% 
+  select(hero_names, publisher, gender, alignment, num_powers) %&gt;% 
+  filter(alignment %in% c(&#39;good&#39;, &#39;bad&#39;)) %&gt;% 
+  mutate(publisher = fct_lump(publisher, n = 2)) %&gt;% 
+  ggplot(aes(x=alignment, num_powers, fill = publisher)) +
+  geom_boxplot()</code></pre>
+<p><img src="/post/2020-04-12-exploratory-data-analysis-on-superheroes_files/figure-html/unnamed-chunk-25-1.png" width="672" /></p>
+<p>Comparing the superpowers among the different publishers between good and bad heroes, we can see that bad heroes created by DC Comics have a higher median than those from Marvel Comics. All those created by publishers who are not DC and Marvel seem to have a wider range of the number of superpowers.</p>
+<p>Median value of the number of superpowers is almost the same for good superheroes from DC and Marvel Comics.</p>
+</div>
+<div id="summary" class="section level4">
+<h4><strong>Summary</strong></h4>
+<p>I’ve practiced primary the following functions during the Exploratory Analysis of the superheroes datasets:</p>
+<ul>
+<li>n_distinct()</li>
+<li>tabyl() in janitor</li>
+<li>fct_reorder()</li>
+<li>fct_lump()</li>
+<li>patchwork package for plots</li>
+<li>coord_flip()</li>
+<li>skim() in skimr</li>
+<li>box_plots</li>
+<li>inner_join</li>
+<li>mutate_if()</li>
+<li>summarise_if()</li>
+<li>pivot_longer()</li>
+<li>rowSums()</li>
+</ul>
+<p>This will be a good reference in case I want to refer to some of these functions in the future.</p>
+</div>
