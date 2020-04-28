@@ -1,0 +1,217 @@
+---
+title: PhDs by Field
+author: Sneha Kannan
+date: '2020-04-27'
+slug: phds-by-field
+categories:
+  - R
+tags:
+  - ggplot2
+draft: no
+---
+
+I had a conversation with my friend recently on what she wants to do after her undergraduate degree where she majored in Computer Science. She wanted was someone to listen while she was trying to figure out if she wanted to pursue a PhD or if she wanted to take up the job offer she got from a big tech company. She is still yet to make a decision on which path to take. This conversation led me to think about all the other people who are at similar crossroads. Has there been a change in the way different people pursue their career over a period of time? I was particularly curious to find out if there was a change in the overall number of people who pursue a PhD (across all fields and not just Computer Science)
+
+[Tidy Tuesday](https://github.com/rfordatascience/tidytuesday) to the rescue as always! It had the dataset on [US PhDs awarded](https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-02-19) from the year 2008 to 2017. 
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggbump)
+library(ggrepel)
+library(gghighlight)
+library(knitr)
+library(kableExtra)
+
+
+phd_field <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-02-19/phd_by_field.csv")
+
+theme_set(theme_bw())
+```
+
+
+The dataset has 7 broad fields, 25 different majors and 336 specializations.
+```{r}
+phd_field %>% 
+  glimpse()
+
+phd_field %>% 
+  distinct(broad_field)
+
+n_distinct(phd_field$major_field)
+
+n_distinct(phd_field$field)
+```
+
+I calculated the total number of PhDs by the different fields over the period of time. **rank** is a function that will assign a rank to the different groups. If there's a tie, the rank assignment will be random in the below piece of code. Some of the other options include 'first', 'last' where the first or last occurring group will be assigned a rank first or last respectively. To make sure that the group with the highest number of PhDs got rank 1, I used *-n_phds* which sorts them in the descending order and assigns a rank. 
+
+```{r}
+broad_field_df <- phd_field %>% 
+  group_by(year, broad_field) %>% 
+  summarise(n_phds = sum(n_phds, na.rm=TRUE)) %>% 
+  mutate(rank = rank(-n_phds, ties.method = 'random'))
+```
+
+The below plot shows the count of PhDs awarded from the years 2008 to 2017. As we can see the number of PhDs awarded in the **Life Sciences** and **Psychology and social sciences** disciplines has consistently increased over time. It's interesting to note that fewer number of people are awarded PhDs in the field of **Education**.
+
+```{r}
+
+broad_field_df %>% 
+  mutate(broad_field = fct_reorder(broad_field, -n_phds)) %>% 
+  ggplot(aes(x=year, y = n_phds, color = broad_field)) + 
+  geom_line() + 
+  scale_x_continuous(limits = c(2008, 2017),
+                     breaks = seq(2008, 2017, 1)) +
+  scale_y_continuous(breaks = seq(0, 25000, 2000)) +
+  ggtitle('PhDs awarded in different Fields') +
+  labs(x = 'Year',
+       y = 'Rank',
+       color = 'Broad Field')
+```
+
+I wanted to try the [ggbump](https://github.com/davidsjoberg/ggbump) package to rank order the various disciplines. **Education** has dropped from the third place to the fourth from the year 2011 since there are fewer people who are awarded PhDs from the year 2012, **Humanities and arts** has taken it's place instead. All the other fields are very flat - there is no change in their ranks over the period of time. 
+
+```{r}
+
+broad_field_df %>% 
+  ggplot(aes(x=year, y = rank, color = broad_field)) + 
+  geom_point(size = 3) +
+  geom_text_repel(data = broad_field_df %>% ungroup() %>% 
+                    filter(year == max(year)), 
+            aes(x = year, y=rank, label = broad_field), 
+            size = 3, direction = "y", point.padding = NA,
+            hjust = 0, vjust = 0, nudge_x = 0.2) +
+  scale_x_continuous(limits = c(2008, 2020),
+                     breaks = seq(2008, 2017, 1)) +
+  scale_y_reverse(breaks = rev(seq(1, 7, 1))) +
+  geom_bump()+
+  theme(legend.position = 'none',
+        plot.title = element_text(hjust = .5)) +
+  ggtitle('Rank of Different Fields over time (in terms of # of PhDs awarded)') +
+  labs(x = 'Year',
+       y = 'Rank')
+```
+
+To get the labels at the end of each rank line, I used *geom_text_repel* where I filtered the data for the max year and changed some aesthetics to make sure that the text was displayed in a readable form. I played around with direction, hjust, vjust, point_padding and nudge_x parameters to display the label text. I've had to use *scale_y_reverse* to make sure that Rank 1 came up on top. 
+
+I calculated the total number of PhDs grouped by the 25 different majors and will use this for plotting. 
+
+```{r}
+major_field_df <- phd_field %>% 
+  group_by(year, major_field) %>% 
+  summarise(n_phds = sum(n_phds, na.rm=TRUE)) %>% 
+  mutate(rank = rank(-n_phds, ties.method = 'random'))
+  
+```
+
+
+I used a [ggbump](https://github.com/davidsjoberg/ggbump) plot again to find out how the ranking of the different majors has changed over time. The graph was challenging because of the number of majors in one plot - I did my best to align the labels and if anyone has a suggestion on how else this can be shown, please leave a comment and I will explore other ways. 
+
+```{r}
+
+
+major_field_df %>% 
+  ggplot(aes(x=year, y = rank, color = major_field)) + 
+  geom_point(size = 3) +
+  geom_text_repel(data = major_field_df %>% ungroup() %>% 
+                    filter(year == max(year)),
+            aes(x = year, y=rank, label = major_field),
+            size = 3, direction = "y", point.padding = NA,
+            hjust = 0, vjust = 0, nudge_x = 0.2) +
+  scale_x_continuous(limits = c(2008, 2025),
+                     breaks = seq(2008, 2017, 1)) +
+  scale_y_reverse(breaks = rev(seq(1, 25, 1))) +
+  geom_bump() +
+  ggtitle('Ranking of different Majors by number of PhDs awarded') +
+  theme(legend.position = "none",
+        panel.grid = element_blank(),
+        plot.title = element_text(hjust = .5, color = "black")) +
+  labs(x = 'Year',
+       y = 'Rank')
+```
+
+**Psychology** is on top, most number of PhDs are awarded in this Major from 2015 to 2017. **Biological and biomedical sciences** was consistently at the top from 2007 to 2014. It was pushed to the second place in 2015 where it has remained. There are no major changes among people who pursue *Psychology*, *Biological and biomedical sciences* and *Physics and Astronomy*. Since there are many categories, I decided to do another plot where I want to highlight some specific majors. 
+
+For this plot, [gghighlight](https://github.com/yutannihilation/gghighlight) package was very useful. I used *geom_line* and *geom_point* together since that's one way to draw attention to some Majors.  
+
+```{r warning=FALSE, message=FALSE}
+
+major_field_df %>% 
+  ggplot(aes(x=year, y = rank, color = major_field)) + 
+  geom_line()+
+  geom_point(size = 3) +
+  gghighlight(major_field %in% c('Psychology',
+                                 'Biological and biomedical sciences',
+                                 'Education research',
+                                 'Education administration',
+                                 'Other engineering',
+                                 'Computer and information sciences',
+                                 'Mathematics and statistics',
+                                 'Agricultural sciences and natural resources'),
+              label_params = list(size = 3, 
+                                  direction = "y", point.padding = NA,
+                                  hjust = 0, vjust = 0.5, nudge_x = 0.2)) +
+  scale_x_continuous(limits = c(2008, 2022),
+                     breaks = seq(2008, 2017, 1)) +
+  scale_y_reverse(breaks = rev(seq(1, 25, 1))) +
+  theme(legend.position = "none",
+        panel.grid = element_blank(),
+        plot.title = element_text(hjust = .5, color = "black")) +
+  ggtitle('Ranking of different Majors by number of PhDs awarded') +
+  labs(x = 'Year',
+       y = 'Rank')
+```
+
+Those being awarded a PhD in **Education administration** has decreased significantly from the year 2010. From 6th place in 2008, this has dropped to 18th place in 2017. There is also a decrease in rank for number of PhDs in **Education research**. 
+
+My friend's major **Computer and Information sciences** has seen fewer people being awarded PhDs in 2017 compared to 2007. However the number fell in 2008 and has remained relatively flat after that. So should my friend pursue a PhD? It's entirely her decision. All that I offered to her is that the data does not show a big change in the way people are awarded PhDs for this discipline.
+
+**Mathematics and statistics** saw a rise from Rank 14. It rose to rank 10 and is at 12th place as of 2017. It was also interesting to see the higher number of PhDs in the field of **Agricultural sciences and natural resources**. 
+
+**Other engineering** majors has seen a steep increase from a rank 15 in 2008 to rank 8. There are many people who are now pursuing a PhD among other engineering disciplines. For more information on what these other engineering disciplines are, a reference to the main dataset would be necessary. 
+
+```{r warning=FALSE, message=FALSE}
+other_engg_df <- phd_field %>% 
+  filter(major_field == 'Other engineering') %>% 
+  group_by(year, field) %>% 
+  summarise(n_phds = sum(n_phds, na.rm=TRUE)) %>% 
+  mutate(rank = rank(-n_phds, ties.method = 'random')) 
+
+other_engg_df %>% 
+  ggplot(aes(x=year, y = rank, color = field)) + 
+  geom_line()+
+  geom_point(size = 3) +
+  gghighlight(field %in% c('Structural engineering',
+                           'Robotics',
+                           'Geotechnical and geoenvironmental engineering'),
+              label_params = list(size = 3, 
+                                  direction = "y", point.padding = NA,
+                                  hjust = 0, vjust = 0.5, nudge_x = 0.2)) +
+  scale_x_continuous(limits = c(2008, 2025),
+                     breaks = seq(2008, 2017, 1)) +
+  scale_y_reverse(breaks = rev(seq(1, 23, 1))) +
+  ggtitle('') +
+  theme(legend.position = "none",
+        panel.grid = element_blank(),
+        plot.title = element_text(hjust = .5, color = "black")) +
+  labs(x = 'Year',
+       y = 'Rank')
+```
+
+**Structural Engineering**, **Robotics** and **Geotechnical and geoenvironmental engineering** are the three major fields where there is a significant increase in the number of PhDs awarded. 
+
+```{r}
+other_engg_df %>% 
+  filter(field %in% c('Structural engineering',
+                           'Robotics',
+                           'Geotechnical and geoenvironmental engineering')) %>% 
+  ggplot(aes(x = year, y = n_phds, fill = field)) +
+  geom_col(position = 'dodge2') +
+  scale_x_continuous(breaks = seq(2008, 2017, 1)) +
+  ggtitle('Other Engineering Majors - Biggest Popularity Increase over time') +
+  labs(x = 'Year',
+       y = 'Number of PhDs')
+```
+
+From no PhDs, these fields have seen an increase in the number of degrees awarded. 
+
+Thanks to my friend, I was able to practice some ggplot! 

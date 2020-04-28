@@ -7,10 +7,19 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>© 2020 Sneha Kannan</copyright>
-    <lastBuildDate>Sun, 12 Apr 2020 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 27 Apr 2020 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/tags/ggplot2/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>PhDs by Field</title>
+      <link>/post/phds-by-field/</link>
+      <pubDate>Mon, 27 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/phds-by-field/</guid>
+      <description>I had a conversation with my friend recently on what she wants to do after her undergraduate degree where she majored in Computer Science.</description>
+    </item>
     
     <item>
       <title>Exploratory Data Analysis on Superheroes </title>
